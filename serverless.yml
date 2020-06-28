@@ -133,6 +133,21 @@ functions:
             parameters:
               paths:
                 orderId: true
+  MessageService:
+    handler: modules/orders/functions/MessageService/handler.messageService
+    vpc:
+      securityGroupIds:
+        - ${self:provider.environment.securityGroupIds}
+      subnetIds:
+        - ${self:provider.environment.subnetId1}
+        - ${self:provider.environment.subnetId2}
+    events:
+      - sqs:
+          arn: ${self:provider.environment.QueueARN}${self:custom.sqs-logs}
+          batchSize: 1
+    timeout: 900
+    memorySize: 512
+    reservedConcurrency: 5
 
 # Infrastrucure - Cloud Formation
 resources:  # CloudFormation template syntax

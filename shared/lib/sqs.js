@@ -15,7 +15,7 @@ const dev = {
 };
 
 const prod = {
-    apiVersion: '2012-11-05', 
+    apiVersion: '2012-11-05',
     region: process.env.REGION || 'us-east-1'
 }
 
