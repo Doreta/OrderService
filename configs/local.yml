@@ -1,5 +1,6 @@
 ENV: local
 MESSAGE: 'local env'
 DYNAMO_TABLE_ORDERS: ${self:custom.dynamo-orders} # Reference to Custom Env
+DYNAMO_TABLE_MESSAGES: ${self:custom.dynamo-messages}
 SQS_QUEUE_URL: '${self:custom.sqs-logs}'
 REGION: 'localhost'

@@ -4,7 +4,7 @@ const dynamo = require('../../../../shared/lib/dynamo');
 const sqs = require('../../../../shared/lib/sqs');
 
 const DYNAMO_TABLE_ORDERS = process.env.DYNAMO_TABLE_ORDERS || 'orders';
-const DYNAMO_TABLE_EMAIlS = process.env.DYNAMO_TABLE_EMAIlS || 'emails';
+const DYNAMO_TABLE_MESSAGES = process.env.DYNAMO_TABLE_MESSAGES || 'messages';
 const SQS_QUEUE_URL = process.env.SQS_QUEUE_URL || 'order';
 
 let lastIntervalID;
@@ -61,7 +61,7 @@ const _updateRecord = async orderId => {
             }
         }
 
-        return await dynamo.save(params, DYNAMO_TABLE_EMAIlS);
+        return await dynamo.save(params, DYNAMO_TABLE_MESSAGES);
     }
 
     return 'Order Not Found';
