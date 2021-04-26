@@ -1,10 +1,10 @@
-service: serverless-boilerplate
+service: orderService
 
 provider:
   name: aws
   runtime: nodejs12.x
   stage: ${opt:stage, 'prod'}
-  region: us-east-1
+  region: ${opt:region, 'us-east-1'}
   timeout: 10 #Default Lambda timeout 
   memorySize: 512 #Default Lambda Memory Size
   versionFunctions: false # No functions versioning 
@@ -143,7 +143,10 @@ functions:
         - ${self:provider.environment.subnetId2}
     events:
       - sqs:
-          arn: ${self:provider.environment.QueueARN}${self:custom.sqs-logs}
+          arn: 
+            Fn::GettAtt:
+              - OrdersQueueExample
+              - Arn
           batchSize: 1
     timeout: 900
     memorySize: 512
