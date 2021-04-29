@@ -1,0 +1,25 @@
+service: OrderService-Infrastructure
+
+provider:
+  name: aws
+  stage: ${opt:stage, 'prod'}
+  region: ${opt:region, 'us-east-1'}
+
+  environment: #Global Environment variables
+    ${file(./configs/${self:provider.stage}.yml)}
+
+custom:
+  region: ${self:provider.region}
+  stage: ${opt:stage, self:provider.stage}
+  prefix: ${self:custom.stage}-OrderService
+  process: ${self:custom.prefix}-process
+  config: ${self:custom.prefix}-config
+  dynamo-orders: ${self:custom.prefix}-OrdersCatalog
+  dynamo-messages: ${self:custom.prefix}-MessagesCatalog
+  sns-logs: ${self:custom.prefix}-trigger-logs
+  sqs-logs: ${self:custom.prefix}-messages-logs
+    
+resources:
+  - ${file(./resources/network.yml)}
+  - ${file(./resources/queues.yml)}
+  - ${file(./resources/tables.yml)}

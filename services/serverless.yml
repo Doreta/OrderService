@@ -9,6 +9,12 @@ provider:
   memorySize: 512 #Default Lambda Memory Size
   versionFunctions: false # No functions versioning 
   #role: arn:aws:iam::#{AWS::AccountId}:role/existing-role
+  vpc:
+    securityGroupIds:
+      - 'Fn::ImportValue': LambdaSecurityGroup
+    subnetIds:
+      - 'Fn::ImportValue': PrivateSubnetOne
+      - 'Fn::ImportValue': PrivateSubnetTwo
   package:
     excludeDevDependencies: true
     exclude:
@@ -45,16 +51,16 @@ provider:
       - sqs:SendMessage
     Resource: arn:aws:sqs:*:*:*
 
-custom:
-  region: ${self:provider.region}
-  stage: ${opt:stage, self:provider.stage}
-  prefix: ${self:custom.stage}-${self:service}
-  process: ${self:custom.prefix}-process
-  config: ${self:custom.prefix}-config
-  dynamo-orders: ${self:custom.prefix}-OrdersCatalog
-  dynamo-messages: ${self:custom.prefix}-MessagesCatalog
-  sns-logs: ${self:custom.prefix}-trigger-logs
-  sqs-logs: ${self:custom.prefix}-messages-logs
+# custom:
+#   region: ${self:provider.region}
+#   stage: ${opt:stage, self:provider.stage}
+#   prefix: ${self:custom.stage}-${self:service}
+#   process: ${self:custom.prefix}-process
+#   config: ${self:custom.prefix}-config
+#   dynamo-orders: ${self:custom.prefix}-OrdersCatalog
+#   dynamo-messages: ${self:custom.prefix}-MessagesCatalog
+#   sns-logs: ${self:custom.prefix}-trigger-logs
+#   sqs-logs: ${self:custom.prefix}-messages-logs
 
   serverless-offline:
     host: '0.0.0.0'
@@ -94,12 +100,6 @@ plugins:
 functions:
   Oders:
     handler: modules/orders/endpoint/index.handler
-    vpc:
-      securityGroupIds:
-        - ${self:provider.environment.securityGroupIds}
-      subnetIds:
-        - ${self:provider.environment.subnetId1}
-        - ${self:provider.environment.subnetId2}
     events:
       - http:
           path: /api/orders
@@ -135,58 +135,14 @@ functions:
                 orderId: true
   MessageService:
     handler: modules/orders/functions/MessageService/handler.messageService
-    vpc:
-      securityGroupIds:
-        - ${self:provider.environment.securityGroupIds}
-      subnetIds:
-        - ${self:provider.environment.subnetId1}
-        - ${self:provider.environment.subnetId2}
     events:
       - sqs:
           arn: 
-            Fn::GettAtt:
-              - OrdersQueueExample
-              - Arn
+            'Fn::ImportValue': OrdersQueueArn
           batchSize: 1
     timeout: 900
     memorySize: 512
     reservedConcurrency: 5
 
-# Infrastrucure - Cloud Formation
-resources:  # CloudFormation template syntax
-  Resources:
-    #DynamoDB Orders Table
-    OrdersCatalog:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.dynamo-orders}
-        AttributeDefinitions:
-          - AttributeName: orderId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: orderId
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 2
-          WriteCapacityUnits: 1
-    MessagesCatalog:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:custom.dynamo-messages}
-        AttributeDefinitions:
-          - AttributeName: orderId
-            AttributeType: S
-        KeySchema:
-          - AttributeName: orderId
-            KeyType: HASH
-        ProvisionedThroughput:
-          ReadCapacityUnits: 2
-          WriteCapacityUnits: 1
 
-    # SQS Queue to Update DynamoDB
-    OrdersQueueExample:
-      Type: AWS::SQS::Queue
-      Properties:
-        QueueName: ${self:custom.sqs-logs}
-        MessageRetentionPeriod: 1209600
-        VisibilityTimeout: 60
+
