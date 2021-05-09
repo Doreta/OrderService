@@ -91,7 +91,7 @@ provider:
 
 
 plugins:
-  - serverless-pseudo-parameters
+  # - serverless-pseudo-parameters
   - serverless-dynamodb-local
   - serverless-offline-scheduler
   - serverless-offline-sqs-esmq
