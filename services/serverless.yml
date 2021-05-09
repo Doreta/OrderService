@@ -51,7 +51,7 @@ provider:
       - sqs:SendMessage
     Resource: arn:aws:sqs:*:*:*
 
- custom:
+custom:
   region: ${self:provider.region}
   stage: ${opt:stage, self:provider.stage}
   prefix: ${self:custom.stage}-${self:service}
