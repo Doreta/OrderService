@@ -1,0 +1,1151 @@
+{
+  "service": {
+    "service": "OrderService-Infrastructure",
+    "serviceObject": {
+      "name": "OrderService-Infrastructure"
+    },
+    "provider": {
+      "name": "aws",
+      "stage": "dev",
+      "region": "eu-west-1",
+      "environment": {
+        "ENV": "dev",
+        "MESSAGE": "dev env",
+        "DYNAMO_TABLE_ORDERS": "dev-OrderService-OrdersCatalog",
+        "DYNAMO_TABLE_MESSAGES": "dev-OrderService-MessagesCatalog",
+        "SQS_QUEUE_URL": "https://sqs.eu-west-1.amazonaws.com/#{AWS::AccountId}/dev-OrderService-messages-logs",
+        "REGION": "eu-west-1"
+      },
+      "variableSyntax": "\\${([^{}:]+?(?:\\(|:)(?:[^:{}][^{}]*?)?)}",
+      "versionFunctions": true,
+      "compiledCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "Networking Stack",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "VPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+              "EnableDnsSupport": "true",
+              "EnableDnsHostnames": "true",
+              "CidrBlock": "10.0.0.0/16",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "VPC with public and private subnets (2 AZs) & NAT"
+                },
+                {
+                  "Key": "Project",
+                  "Value": "Prosperoware Content Sync"
+                }
+              ]
+            }
+          },
+          "InternetGateway": {
+            "Type": "AWS::EC2::InternetGateway",
+            "Properties": {
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Internet Gateway"
+                }
+              ]
+            }
+          },
+          "GatewayToInternet": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "InternetGatewayId": {
+                "Ref": "InternetGateway"
+              }
+            }
+          },
+          "NATGatewayOne": {
+            "DependsOn": [
+              "GatewayToInternet"
+            ],
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+              "AllocationId": {
+                "Fn::GetAtt": [
+                  "ElasticIPOne",
+                  "AllocationId"
+                ]
+              },
+              "SubnetId": {
+                "Ref": "PublicSubnetOne"
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "NAT Gateway #1"
+                }
+              ]
+            }
+          },
+          "ElasticIPOne": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+              "Domain": "vpc",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Elastic IP associated with NAT Gateway #1"
+                }
+              ]
+            }
+          },
+          "NATGatewayTwo": {
+            "DependsOn": [
+              "GatewayToInternet"
+            ],
+            "Type": "AWS::EC2::NatGateway",
+            "Properties": {
+              "AllocationId": {
+                "Fn::GetAtt": [
+                  "ElasticIPTwo",
+                  "AllocationId"
+                ]
+              },
+              "SubnetId": {
+                "Ref": "PublicSubnetTwo"
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "NAT Gateway #2"
+                }
+              ]
+            }
+          },
+          "ElasticIPTwo": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+              "Domain": "vpc",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Elastic IP associated with NAT Gateway #2"
+                }
+              ]
+            }
+          },
+          "PublicRouteTable": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Public Route Table"
+                }
+              ]
+            }
+          },
+          "PublicRoute": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+              "RouteTableId": {
+                "Ref": "PublicRouteTable"
+              },
+              "DestinationCidrBlock": "0.0.0.0/0",
+              "GatewayId": {
+                "Ref": "InternetGateway"
+              }
+            }
+          },
+          "PublicSubnetOne": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "MapPublicIpOnLaunch": true,
+              "CidrBlock": "10.0.1.0/24",
+              "AvailabilityZone": {
+                "Fn::Select": [
+                  "0",
+                  {
+                    "Fn::GetAZs": {
+                      "Ref": "AWS::Region"
+                    }
+                  }
+                ]
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Public subnet #1"
+                }
+              ]
+            }
+          },
+          "PublicSubnetOneRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PublicSubnetOne"
+              },
+              "RouteTableId": {
+                "Ref": "PublicRouteTable"
+              }
+            }
+          },
+          "PublicSubnetTwo": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "MapPublicIpOnLaunch": true,
+              "CidrBlock": "10.0.2.0/24",
+              "AvailabilityZone": {
+                "Fn::Select": [
+                  "1",
+                  {
+                    "Fn::GetAZs": {
+                      "Ref": "AWS::Region"
+                    }
+                  }
+                ]
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Public subnet #2"
+                }
+              ]
+            }
+          },
+          "PublicSubnetTwoRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PublicSubnetTwo"
+              },
+              "RouteTableId": {
+                "Ref": "PublicRouteTable"
+              }
+            }
+          },
+          "PrivateRouteTableOne": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Private Route Table #1"
+                }
+              ]
+            }
+          },
+          "PrivateRouteToInternetOne": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+              "RouteTableId": {
+                "Ref": "PrivateRouteTableOne"
+              },
+              "DestinationCidrBlock": "0.0.0.0/0",
+              "NatGatewayId": {
+                "Ref": "NATGatewayOne"
+              }
+            }
+          },
+          "PrivateSubnetOneRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetOne"
+              },
+              "RouteTableId": {
+                "Ref": "PrivateRouteTableOne"
+              }
+            }
+          },
+          "PrivateSubnetOne": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "CidrBlock": "10.0.3.0/24",
+              "AvailabilityZone": {
+                "Fn::Select": [
+                  "0",
+                  {
+                    "Fn::GetAZs": {
+                      "Ref": "AWS::Region"
+                    }
+                  }
+                ]
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Private subnet #1"
+                }
+              ]
+            }
+          },
+          "PrivateRouteTableTwo": {
+            "Type": "AWS::EC2::RouteTable",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Private Route Table #2"
+                }
+              ]
+            }
+          },
+          "PrivateRouteToInternetTwo": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+              "RouteTableId": {
+                "Ref": "PrivateRouteTableTwo"
+              },
+              "DestinationCidrBlock": "0.0.0.0/0",
+              "NatGatewayId": {
+                "Ref": "NATGatewayTwo"
+              }
+            }
+          },
+          "PrivateSubnetTwoRouteTableAssociation": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+              "SubnetId": {
+                "Ref": "PrivateSubnetTwo"
+              },
+              "RouteTableId": {
+                "Ref": "PrivateRouteTableTwo"
+              }
+            }
+          },
+          "PrivateSubnetTwo": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "CidrBlock": "10.0.4.0/24",
+              "AvailabilityZone": {
+                "Fn::Select": [
+                  "1",
+                  {
+                    "Fn::GetAZs": {
+                      "Ref": "AWS::Region"
+                    }
+                  }
+                ]
+              },
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Private subnet #2"
+                }
+              ]
+            }
+          },
+          "LambdaSecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+              "GroupDescription": "Security group for Lambda Functions",
+              "GroupName": "Lambda-SG",
+              "Tags": [
+                {
+                  "Key": "Name",
+                  "Value": "Lambda Security Group"
+                }
+              ],
+              "VpcId": {
+                "Ref": "VPC"
+              },
+              "SecurityGroupIngress": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "IpProtocol": "-1"
+                },
+                {
+                  "CidrIpv6": "::/0",
+                  "IpProtocol": "-1"
+                }
+              ],
+              "SecurityGroupEgress": [
+                {
+                  "CidrIp": "0.0.0.0/0",
+                  "Description": "Allow all egress traffic",
+                  "IpProtocol": "-1"
+                },
+                {
+                  "CidrIpv6": "::/0",
+                  "Description": "Allow all egress IPv6 traffic",
+                  "IpProtocol": "-1"
+                }
+              ]
+            }
+          },
+          "OrdersQueueExample": {
+            "Type": "AWS::SQS::Queue",
+            "Properties": {
+              "QueueName": "dev-OrderService-messages-logs",
+              "MessageRetentionPeriod": 1209600,
+              "VisibilityTimeout": 960
+            }
+          },
+          "OrdersCatalog": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "dev-OrderService-OrdersCatalog",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "orderId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "orderId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 2,
+                "WriteCapacityUnits": 1
+              }
+            }
+          },
+          "MessagesCatalog": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "TableName": "dev-OrderService-MessagesCatalog",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "orderId",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "orderId",
+                  "KeyType": "HASH"
+                }
+              ],
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 2,
+                "WriteCapacityUnits": 1
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            },
+            "Export": {
+              "Name": "sls-OrderService-Infrastructure-dev-ServerlessDeploymentBucketName"
+            }
+          },
+          "LambdaSecurityGroup": {
+            "Value": {
+              "Ref": "LambdaSecurityGroup"
+            },
+            "Export": {
+              "Name": "LambdaSecurityGroup"
+            }
+          },
+          "PrivateSubnetOne": {
+            "Value": {
+              "Ref": "PrivateSubnetOne"
+            },
+            "Export": {
+              "Name": "PrivateSubnetOne"
+            }
+          },
+          "PrivateSubnetTwo": {
+            "Value": {
+              "Ref": "PrivateSubnetTwo"
+            },
+            "Export": {
+              "Name": "PrivateSubnetTwo"
+            }
+          },
+          "OrdersQueueExample": {
+            "Value": {
+              "Fn::GetAtt": [
+                "OrdersQueueExample",
+                "Arn"
+              ]
+            },
+            "Export": {
+              "Name": "OrdersQueueArn"
+            }
+          }
+        }
+      },
+      "coreCloudFormationTemplate": {
+        "AWSTemplateFormatVersion": "2010-09-09",
+        "Description": "The AWS CloudFormation template for this Serverless application",
+        "Resources": {
+          "ServerlessDeploymentBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Properties": {
+              "BucketEncryption": {
+                "ServerSideEncryptionConfiguration": [
+                  {
+                    "ServerSideEncryptionByDefault": {
+                      "SSEAlgorithm": "AES256"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "ServerlessDeploymentBucketPolicy": {
+            "Type": "AWS::S3::BucketPolicy",
+            "Properties": {
+              "Bucket": {
+                "Ref": "ServerlessDeploymentBucket"
+              },
+              "PolicyDocument": {
+                "Statement": [
+                  {
+                    "Action": "s3:*",
+                    "Effect": "Deny",
+                    "Principal": "*",
+                    "Resource": [
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            },
+                            "/*"
+                          ]
+                        ]
+                      },
+                      {
+                        "Fn::Join": [
+                          "",
+                          [
+                            "arn:",
+                            {
+                              "Ref": "AWS::Partition"
+                            },
+                            ":s3:::",
+                            {
+                              "Ref": "ServerlessDeploymentBucket"
+                            }
+                          ]
+                        ]
+                      }
+                    ],
+                    "Condition": {
+                      "Bool": {
+                        "aws:SecureTransport": false
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "Outputs": {
+          "ServerlessDeploymentBucketName": {
+            "Value": {
+              "Ref": "ServerlessDeploymentBucket"
+            }
+          }
+        }
+      }
+    },
+    "custom": {
+      "region": "eu-west-1",
+      "stage": "dev",
+      "prefix": "dev-OrderService",
+      "process": "dev-OrderService-process",
+      "config": "dev-OrderService-config",
+      "dynamo-orders": "dev-OrderService-OrdersCatalog",
+      "dynamo-messages": "dev-OrderService-MessagesCatalog",
+      "sns-logs": "dev-OrderService-trigger-logs",
+      "sqs-logs": "dev-OrderService-messages-logs"
+    },
+    "pluginsData": {},
+    "functions": {},
+    "resources": {
+      "AWSTemplateFormatVersion": "2010-09-09",
+      "Description": "Networking Stack",
+      "Resources": {
+        "VPC": {
+          "Type": "AWS::EC2::VPC",
+          "Properties": {
+            "EnableDnsSupport": "true",
+            "EnableDnsHostnames": "true",
+            "CidrBlock": "10.0.0.0/16",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "VPC with public and private subnets (2 AZs) & NAT"
+              },
+              {
+                "Key": "Project",
+                "Value": "Prosperoware Content Sync"
+              }
+            ]
+          }
+        },
+        "InternetGateway": {
+          "Type": "AWS::EC2::InternetGateway",
+          "Properties": {
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Internet Gateway"
+              }
+            ]
+          }
+        },
+        "GatewayToInternet": {
+          "Type": "AWS::EC2::VPCGatewayAttachment",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "InternetGatewayId": {
+              "Ref": "InternetGateway"
+            }
+          }
+        },
+        "NATGatewayOne": {
+          "DependsOn": [
+            "GatewayToInternet"
+          ],
+          "Type": "AWS::EC2::NatGateway",
+          "Properties": {
+            "AllocationId": {
+              "Fn::GetAtt": [
+                "ElasticIPOne",
+                "AllocationId"
+              ]
+            },
+            "SubnetId": {
+              "Ref": "PublicSubnetOne"
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "NAT Gateway #1"
+              }
+            ]
+          }
+        },
+        "ElasticIPOne": {
+          "Type": "AWS::EC2::EIP",
+          "Properties": {
+            "Domain": "vpc",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Elastic IP associated with NAT Gateway #1"
+              }
+            ]
+          }
+        },
+        "NATGatewayTwo": {
+          "DependsOn": [
+            "GatewayToInternet"
+          ],
+          "Type": "AWS::EC2::NatGateway",
+          "Properties": {
+            "AllocationId": {
+              "Fn::GetAtt": [
+                "ElasticIPTwo",
+                "AllocationId"
+              ]
+            },
+            "SubnetId": {
+              "Ref": "PublicSubnetTwo"
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "NAT Gateway #2"
+              }
+            ]
+          }
+        },
+        "ElasticIPTwo": {
+          "Type": "AWS::EC2::EIP",
+          "Properties": {
+            "Domain": "vpc",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Elastic IP associated with NAT Gateway #2"
+              }
+            ]
+          }
+        },
+        "PublicRouteTable": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Public Route Table"
+              }
+            ]
+          }
+        },
+        "PublicRoute": {
+          "Type": "AWS::EC2::Route",
+          "Properties": {
+            "RouteTableId": {
+              "Ref": "PublicRouteTable"
+            },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "GatewayId": {
+              "Ref": "InternetGateway"
+            }
+          }
+        },
+        "PublicSubnetOne": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "MapPublicIpOnLaunch": true,
+            "CidrBlock": "10.0.1.0/24",
+            "AvailabilityZone": {
+              "Fn::Select": [
+                "0",
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Public subnet #1"
+              }
+            ]
+          }
+        },
+        "PublicSubnetOneRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PublicSubnetOne"
+            },
+            "RouteTableId": {
+              "Ref": "PublicRouteTable"
+            }
+          }
+        },
+        "PublicSubnetTwo": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "MapPublicIpOnLaunch": true,
+            "CidrBlock": "10.0.2.0/24",
+            "AvailabilityZone": {
+              "Fn::Select": [
+                "1",
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Public subnet #2"
+              }
+            ]
+          }
+        },
+        "PublicSubnetTwoRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PublicSubnetTwo"
+            },
+            "RouteTableId": {
+              "Ref": "PublicRouteTable"
+            }
+          }
+        },
+        "PrivateRouteTableOne": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Private Route Table #1"
+              }
+            ]
+          }
+        },
+        "PrivateRouteToInternetOne": {
+          "Type": "AWS::EC2::Route",
+          "Properties": {
+            "RouteTableId": {
+              "Ref": "PrivateRouteTableOne"
+            },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "NatGatewayId": {
+              "Ref": "NATGatewayOne"
+            }
+          }
+        },
+        "PrivateSubnetOneRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PrivateSubnetOne"
+            },
+            "RouteTableId": {
+              "Ref": "PrivateRouteTableOne"
+            }
+          }
+        },
+        "PrivateSubnetOne": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "CidrBlock": "10.0.3.0/24",
+            "AvailabilityZone": {
+              "Fn::Select": [
+                "0",
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Private subnet #1"
+              }
+            ]
+          }
+        },
+        "PrivateRouteTableTwo": {
+          "Type": "AWS::EC2::RouteTable",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Private Route Table #2"
+              }
+            ]
+          }
+        },
+        "PrivateRouteToInternetTwo": {
+          "Type": "AWS::EC2::Route",
+          "Properties": {
+            "RouteTableId": {
+              "Ref": "PrivateRouteTableTwo"
+            },
+            "DestinationCidrBlock": "0.0.0.0/0",
+            "NatGatewayId": {
+              "Ref": "NATGatewayTwo"
+            }
+          }
+        },
+        "PrivateSubnetTwoRouteTableAssociation": {
+          "Type": "AWS::EC2::SubnetRouteTableAssociation",
+          "Properties": {
+            "SubnetId": {
+              "Ref": "PrivateSubnetTwo"
+            },
+            "RouteTableId": {
+              "Ref": "PrivateRouteTableTwo"
+            }
+          }
+        },
+        "PrivateSubnetTwo": {
+          "Type": "AWS::EC2::Subnet",
+          "Properties": {
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "CidrBlock": "10.0.4.0/24",
+            "AvailabilityZone": {
+              "Fn::Select": [
+                "1",
+                {
+                  "Fn::GetAZs": {
+                    "Ref": "AWS::Region"
+                  }
+                }
+              ]
+            },
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Private subnet #2"
+              }
+            ]
+          }
+        },
+        "LambdaSecurityGroup": {
+          "Type": "AWS::EC2::SecurityGroup",
+          "Properties": {
+            "GroupDescription": "Security group for Lambda Functions",
+            "GroupName": "Lambda-SG",
+            "Tags": [
+              {
+                "Key": "Name",
+                "Value": "Lambda Security Group"
+              }
+            ],
+            "VpcId": {
+              "Ref": "VPC"
+            },
+            "SecurityGroupIngress": [
+              {
+                "CidrIp": "0.0.0.0/0",
+                "IpProtocol": "-1"
+              },
+              {
+                "CidrIpv6": "::/0",
+                "IpProtocol": "-1"
+              }
+            ],
+            "SecurityGroupEgress": [
+              {
+                "CidrIp": "0.0.0.0/0",
+                "Description": "Allow all egress traffic",
+                "IpProtocol": "-1"
+              },
+              {
+                "CidrIpv6": "::/0",
+                "Description": "Allow all egress IPv6 traffic",
+                "IpProtocol": "-1"
+              }
+            ]
+          }
+        },
+        "OrdersQueueExample": {
+          "Type": "AWS::SQS::Queue",
+          "Properties": {
+            "QueueName": "dev-OrderService-messages-logs",
+            "MessageRetentionPeriod": 1209600,
+            "VisibilityTimeout": 960
+          }
+        },
+        "OrdersCatalog": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "dev-OrderService-OrdersCatalog",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "orderId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "orderId",
+                "KeyType": "HASH"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 2,
+              "WriteCapacityUnits": 1
+            }
+          }
+        },
+        "MessagesCatalog": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "TableName": "dev-OrderService-MessagesCatalog",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "orderId",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "orderId",
+                "KeyType": "HASH"
+              }
+            ],
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 2,
+              "WriteCapacityUnits": 1
+            }
+          }
+        }
+      },
+      "Outputs": {
+        "LambdaSecurityGroup": {
+          "Value": {
+            "Ref": "LambdaSecurityGroup"
+          },
+          "Export": {
+            "Name": "LambdaSecurityGroup"
+          }
+        },
+        "PrivateSubnetOne": {
+          "Value": {
+            "Ref": "PrivateSubnetOne"
+          },
+          "Export": {
+            "Name": "PrivateSubnetOne"
+          }
+        },
+        "PrivateSubnetTwo": {
+          "Value": {
+            "Ref": "PrivateSubnetTwo"
+          },
+          "Export": {
+            "Name": "PrivateSubnetTwo"
+          }
+        },
+        "OrdersQueueExample": {
+          "Value": {
+            "Fn::GetAtt": [
+              "OrdersQueueExample",
+              "Arn"
+            ]
+          },
+          "Export": {
+            "Name": "OrdersQueueArn"
+          }
+        }
+      }
+    },
+    "configValidationMode": "warn",
+    "serviceFilename": "serverless.yml",
+    "layers": {},
+    "initialServerlessConfig": {
+      "service": {
+        "$ref": "$[\"service\"][\"serviceObject\"]"
+      },
+      "provider": {
+        "$ref": "$[\"service\"][\"provider\"]"
+      },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
+      }
+    },
+    "isDashboardMonitoringPreconfigured": false
+  },
+  "package": {
+    "artifactDirectoryName": "serverless/OrderService-Infrastructure/dev/1619655460405-2021-04-29T00:17:40.405Z",
+    "artifact": ""
+  }
+}

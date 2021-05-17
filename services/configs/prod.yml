@@ -1,0 +1,6 @@
+ENV: prod
+MESSAGE: 'prod env'
+DYNAMO_TABLE_ORDERS: ${self:custom.dynamo-orders} # Reference to Custom Env
+DYNAMO_TABLE_MESSAGES: ${self:custom.dynamo-messages}
+SQS_QUEUE_URL: 'https://sqs.${self:provider.region}.amazonaws.com/#{AWS::AccountId}/${self:custom.sqs-logs}'
+REGION: ${self:custom.region}

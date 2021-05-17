@@ -1,0 +1,12 @@
+Resources:
+  OrdersQueueExample:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: ${self:custom.sqs-logs}
+      MessageRetentionPeriod: 1209600
+      VisibilityTimeout: 960
+Outputs:
+  OrdersQueueExample:
+    Value: !GetAtt OrdersQueueExample.Arn
+    Export:
+        Name: OrdersQueueArn
