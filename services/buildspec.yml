@@ -21,12 +21,12 @@ phases:
     - mkdir -p target/stg 
     - mkdir -p target/prod
     - ls
-    - serverless package --package target/stg --stage stg -v -r eu-west-1
-    - serverless package --package target/prod --stage prod -v -r eu-west-1
+    - serverless package --package target/stg --stage stg -v -r eu-central-1
+    - serverless package --package target/prod --stage prod -v -r eu-central-1
     
 
 artifacts:
   files:
-  # - target/**/*
+  - target/**/*
   - serverless.yml
   - deploy.sh
