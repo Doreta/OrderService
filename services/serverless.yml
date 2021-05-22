@@ -15,12 +15,12 @@ provider:
     subnetIds:
       - 'Fn::ImportValue': PrivateSubnetOne
       - 'Fn::ImportValue': PrivateSubnetTwo
-  package:
-    excludeDevDependencies: true
-    exclude:
-      - .git/**
-      - .vscode/**
-      - .test/**
+  # package:
+  #   excludeDevDependencies: true
+  #   exclude:
+  #     - .git/**
+  #     - .vscode/**
+  #     - .test/**
   
   environment: #Global Environment variables
       ${file(./configs/${self:provider.stage}.yml)}
