@@ -27,6 +27,6 @@ phases:
 
 artifacts:
   files:
-  - target/**/*
-  - serverless.yml
-  - deploy.sh
+  - services/target/**/*
+  - services/serverless.yml
+  - services/deploy.sh
