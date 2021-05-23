@@ -224,7 +224,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
+          "S3Key": "serverless/orderService/prod/1621784823020-2021-05-23T15:47:03.020Z/orderService.zip"
         },
         "Handler": "modules/orders/endpoint/index.handler",
         "Runtime": "nodejs12.x",
@@ -278,7 +278,7 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
+          "S3Key": "serverless/orderService/prod/1621784823020-2021-05-23T15:47:03.020Z/orderService.zip"
         },
         "Handler": "modules/orders/functions/MessageService/handler.messageService",
         "Runtime": "nodejs12.x",
@@ -688,7 +688,7 @@
         "MethodResponses": []
       }
     },
-    "ApiGatewayDeployment1621783548245": {
+    "ApiGatewayDeployment1621784758484": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
