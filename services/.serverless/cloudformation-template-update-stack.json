@@ -74,13 +74,13 @@
     "OdersLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Properties": {
-        "LogGroupName": "/aws/lambda/orderService-dev-Oders"
+        "LogGroupName": "/aws/lambda/orderService-prod-Oders"
       }
     },
     "MessageServiceLogGroup": {
       "Type": "AWS::Logs::LogGroup",
       "Properties": {
-        "LogGroupName": "/aws/lambda/orderService-dev-MessageService"
+        "LogGroupName": "/aws/lambda/orderService-prod-MessageService"
       }
     },
     "IamRoleLambdaExecution": {
@@ -109,7 +109,7 @@
                 "-",
                 [
                   "orderService",
-                  "dev",
+                  "prod",
                   "lambda"
                 ]
               ]
@@ -125,7 +125,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-dev*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-prod*:*"
                     }
                   ]
                 },
@@ -136,7 +136,7 @@
                   ],
                   "Resource": [
                     {
-                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-dev*:*:*"
+                      "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-prod*:*:*"
                     }
                   ]
                 },
@@ -193,7 +193,7 @@
             "-",
             [
               "orderService",
-              "dev",
+              "prod",
               {
                 "Ref": "AWS::Region"
               },
@@ -224,13 +224,27 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/orderService/dev/1619656533264-2021-04-29T00:35:33.264Z/orderService.zip"
+          "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
         },
         "Handler": "modules/orders/endpoint/index.handler",
         "Runtime": "nodejs12.x",
-        "FunctionName": "orderService-dev-Oders",
+        "FunctionName": "orderService-prod-Oders",
         "MemorySize": 512,
         "Timeout": 10,
+        "Environment": {
+          "Variables": {
+            "ENV": "prod",
+            "MESSAGE": "prod env",
+            "DYNAMO_TABLE_ORDERS": "prod-orderService-OrdersCatalog",
+            "DYNAMO_TABLE_MESSAGES": "prod-orderService-MessagesCatalog",
+            "SQS_QUEUE_URL": {
+              "Fn::Sub": "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/prod-orderService-messages-logs"
+            },
+            "REGION": {
+              "Fn::Sub": "${AWS::Region}"
+            }
+          }
+        },
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",
@@ -264,13 +278,27 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/orderService/dev/1619656533264-2021-04-29T00:35:33.264Z/orderService.zip"
+          "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
         },
         "Handler": "modules/orders/functions/MessageService/handler.messageService",
         "Runtime": "nodejs12.x",
-        "FunctionName": "orderService-dev-MessageService",
+        "FunctionName": "orderService-prod-MessageService",
         "MemorySize": 512,
         "Timeout": 900,
+        "Environment": {
+          "Variables": {
+            "ENV": "prod",
+            "MESSAGE": "prod env",
+            "DYNAMO_TABLE_ORDERS": "prod-orderService-OrdersCatalog",
+            "DYNAMO_TABLE_MESSAGES": "prod-orderService-MessagesCatalog",
+            "SQS_QUEUE_URL": {
+              "Fn::Sub": "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/prod-orderService-messages-logs"
+            },
+            "REGION": {
+              "Fn::Sub": "${AWS::Region}"
+            }
+          }
+        },
         "Role": {
           "Fn::GetAtt": [
             "IamRoleLambdaExecution",
@@ -301,7 +329,7 @@
     "ApiGatewayRestApi": {
       "Type": "AWS::ApiGateway::RestApi",
       "Properties": {
-        "Name": "dev-orderService",
+        "Name": "prod-orderService",
         "EndpointConfiguration": {
           "Types": [
             "EDGE"
@@ -660,13 +688,13 @@
         "MethodResponses": []
       }
     },
-    "ApiGatewayDeployment1619656514534": {
+    "ApiGatewayDeployment1621783548245": {
       "Type": "AWS::ApiGateway::Deployment",
       "Properties": {
         "RestApiId": {
           "Ref": "ApiGatewayRestApi"
         },
-        "StageName": "dev"
+        "StageName": "prod"
       },
       "DependsOn": [
         "ApiGatewayMethodApiOrdersOptions",
@@ -741,7 +769,7 @@
         "Ref": "ServerlessDeploymentBucket"
       },
       "Export": {
-        "Name": "sls-orderService-dev-ServerlessDeploymentBucketName"
+        "Name": "sls-orderService-prod-ServerlessDeploymentBucketName"
       }
     },
     "ServiceEndpoint": {
@@ -762,12 +790,12 @@
             {
               "Ref": "AWS::URLSuffix"
             },
-            "/dev"
+            "/prod"
           ]
         ]
       },
       "Export": {
-        "Name": "sls-orderService-dev-ServiceEndpoint"
+        "Name": "sls-orderService-prod-ServiceEndpoint"
       }
     }
   }

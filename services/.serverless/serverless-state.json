@@ -7,8 +7,8 @@
     "provider": {
       "name": "aws",
       "runtime": "nodejs12.x",
-      "stage": "dev",
-      "region": "eu-west-1",
+      "stage": "prod",
+      "region": "us-east-1",
       "timeout": 10,
       "memorySize": 512,
       "versionFunctions": false,
@@ -34,6 +34,14 @@
           ".vscode/**",
           ".test/**"
         ]
+      },
+      "environment": {
+        "ENV": "prod",
+        "MESSAGE": "prod env",
+        "DYNAMO_TABLE_ORDERS": "prod-orderService-OrdersCatalog",
+        "DYNAMO_TABLE_MESSAGES": "prod-orderService-MessagesCatalog",
+        "SQS_QUEUE_URL": "https://sqs.us-east-1.amazonaws.com/#{AWS::AccountId}/prod-orderService-messages-logs",
+        "REGION": "us-east-1"
       },
       "iamRoleStatements": [
         {
@@ -67,34 +75,6 @@
           "Resource": "arn:aws:sqs:*:*:*"
         }
       ],
-      "serverless-offline": {
-        "host": "0.0.0.0"
-      },
-      "splitStacks": {
-        "perFunction": true,
-        "perType": true
-      },
-      "serverless-offline-sqs-esmq": {
-        "apiVersion": "2012-11-05",
-        "endpoint": "http://sqs:9324",
-        "region": "sa-east-1",
-        "accessKeyId": "root",
-        "secretAccessKey": "root"
-      },
-      "dynamodb": {
-        "stages": [
-          "local",
-          "test",
-          "dev"
-        ],
-        "start": {
-          "host": "dynamo",
-          "port": 8000,
-          "inMemory": false,
-          "migrate": true,
-          "noStart": true
-        }
-      },
       "variableSyntax": "\\${([^{}:]+?(?:\\(|:)(?:[^:{}][^{}]*?)?)}",
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
@@ -172,13 +152,13 @@
           "OdersLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/orderService-dev-Oders"
+              "LogGroupName": "/aws/lambda/orderService-prod-Oders"
             }
           },
           "MessageServiceLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/orderService-dev-MessageService"
+              "LogGroupName": "/aws/lambda/orderService-prod-MessageService"
             }
           },
           "IamRoleLambdaExecution": {
@@ -207,7 +187,7 @@
                       "-",
                       [
                         "orderService",
-                        "dev",
+                        "prod",
                         "lambda"
                       ]
                     ]
@@ -223,7 +203,7 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-dev*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-prod*:*"
                           }
                         ]
                       },
@@ -234,7 +214,7 @@
                         ],
                         "Resource": [
                           {
-                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-dev*:*:*"
+                            "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/orderService-prod*:*:*"
                           }
                         ]
                       },
@@ -270,7 +250,7 @@
                   "-",
                   [
                     "orderService",
-                    "dev",
+                    "prod",
                     {
                       "Ref": "AWS::Region"
                     },
@@ -301,13 +281,27 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/orderService/dev/1619656533264-2021-04-29T00:35:33.264Z/orderService.zip"
+                "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
               },
               "Handler": "modules/orders/endpoint/index.handler",
               "Runtime": "nodejs12.x",
-              "FunctionName": "orderService-dev-Oders",
+              "FunctionName": "orderService-prod-Oders",
               "MemorySize": 512,
               "Timeout": 10,
+              "Environment": {
+                "Variables": {
+                  "ENV": "prod",
+                  "MESSAGE": "prod env",
+                  "DYNAMO_TABLE_ORDERS": "prod-orderService-OrdersCatalog",
+                  "DYNAMO_TABLE_MESSAGES": "prod-orderService-MessagesCatalog",
+                  "SQS_QUEUE_URL": {
+                    "Fn::Sub": "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/prod-orderService-messages-logs"
+                  },
+                  "REGION": {
+                    "Fn::Sub": "${AWS::Region}"
+                  }
+                }
+              },
               "Role": {
                 "Fn::GetAtt": [
                   "IamRoleLambdaExecution",
@@ -334,13 +328,27 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/orderService/dev/1619656533264-2021-04-29T00:35:33.264Z/orderService.zip"
+                "S3Key": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z/orderService.zip"
               },
               "Handler": "modules/orders/functions/MessageService/handler.messageService",
               "Runtime": "nodejs12.x",
-              "FunctionName": "orderService-dev-MessageService",
+              "FunctionName": "orderService-prod-MessageService",
               "MemorySize": 512,
               "Timeout": 900,
+              "Environment": {
+                "Variables": {
+                  "ENV": "prod",
+                  "MESSAGE": "prod env",
+                  "DYNAMO_TABLE_ORDERS": "prod-orderService-OrdersCatalog",
+                  "DYNAMO_TABLE_MESSAGES": "prod-orderService-MessagesCatalog",
+                  "SQS_QUEUE_URL": {
+                    "Fn::Sub": "https://sqs.${AWS::Region}.amazonaws.com/${AWS::AccountId}/prod-orderService-messages-logs"
+                  },
+                  "REGION": {
+                    "Fn::Sub": "${AWS::Region}"
+                  }
+                }
+              },
               "Role": {
                 "Fn::GetAtt": [
                   "IamRoleLambdaExecution",
@@ -364,7 +372,7 @@
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-              "Name": "dev-orderService",
+              "Name": "prod-orderService",
               "EndpointConfiguration": {
                 "Types": [
                   "EDGE"
@@ -723,13 +731,13 @@
               "MethodResponses": []
             }
           },
-          "ApiGatewayDeployment1619656514534": {
+          "ApiGatewayDeployment1621783548245": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               },
-              "StageName": "dev"
+              "StageName": "prod"
             },
             "DependsOn": [
               "ApiGatewayMethodApiOrdersOptions",
@@ -804,7 +812,7 @@
               "Ref": "ServerlessDeploymentBucket"
             },
             "Export": {
-              "Name": "sls-orderService-dev-ServerlessDeploymentBucketName"
+              "Name": "sls-orderService-prod-ServerlessDeploymentBucketName"
             }
           },
           "ServiceEndpoint": {
@@ -825,12 +833,12 @@
                   {
                     "Ref": "AWS::URLSuffix"
                   },
-                  "/dev"
+                  "/prod"
                 ]
               ]
             },
             "Export": {
-              "Name": "sls-orderService-dev-ServiceEndpoint"
+              "Name": "sls-orderService-prod-ServiceEndpoint"
             }
           }
         }
@@ -915,6 +923,45 @@
               "Ref": "ServerlessDeploymentBucket"
             }
           }
+        }
+      }
+    },
+    "custom": {
+      "region": "us-east-1",
+      "stage": "prod",
+      "prefix": "prod-orderService",
+      "process": "prod-orderService-process",
+      "config": "prod-orderService-config",
+      "dynamo-orders": "prod-orderService-OrdersCatalog",
+      "dynamo-messages": "prod-orderService-MessagesCatalog",
+      "sns-logs": "prod-orderService-trigger-logs",
+      "sqs-logs": "prod-orderService-messages-logs",
+      "serverless-offline": {
+        "host": "0.0.0.0"
+      },
+      "splitStacks": {
+        "perFunction": true,
+        "perType": true
+      },
+      "serverless-offline-sqs-esmq": {
+        "apiVersion": "2012-11-05",
+        "endpoint": "http://sqs:9324",
+        "region": "sa-east-1",
+        "accessKeyId": "root",
+        "secretAccessKey": "root"
+      },
+      "dynamodb": {
+        "stages": [
+          "local",
+          "test",
+          "dev"
+        ],
+        "start": {
+          "host": "dynamo",
+          "port": 8000,
+          "inMemory": false,
+          "migrate": true,
+          "noStart": true
         }
       }
     },
@@ -1076,7 +1123,7 @@
             }
           }
         ],
-        "name": "orderService-dev-Oders",
+        "name": "orderService-prod-Oders",
         "package": {},
         "memory": 512,
         "timeout": 10,
@@ -1098,7 +1145,7 @@
         "timeout": 900,
         "memorySize": 512,
         "reservedConcurrency": 5,
-        "name": "orderService-dev-MessageService",
+        "name": "orderService-prod-MessageService",
         "package": {},
         "memory": 512,
         "runtime": "nodejs12.x",
@@ -1115,6 +1162,9 @@
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
       },
+      "custom": {
+        "$ref": "$[\"service\"][\"custom\"]"
+      },
       "plugins": {
         "$ref": "$[\"service\"][\"plugins\"]"
       },
@@ -1126,7 +1176,7 @@
     "artifact": "C:\\Users\\DoretaMaliqi\\Desktop\\TEMAd\\OrderService\\services\\.serverless\\orderService.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/orderService/dev/1619656533264-2021-04-29T00:35:33.264Z",
+    "artifactDirectoryName": "serverless/orderService/prod/1621783618940-2021-05-23T15:26:58.940Z",
     "artifact": "orderService.zip"
   }
 }
