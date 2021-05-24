@@ -31,3 +31,4 @@ artifacts:
   - services/serverless.yml
   - services/deploy.sh
   - services/package.json
+  - services/configs/*
