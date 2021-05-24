@@ -30,3 +30,4 @@ artifacts:
   - services/target/**/*
   - services/serverless.yml
   - services/deploy.sh
+  - services/package.json
